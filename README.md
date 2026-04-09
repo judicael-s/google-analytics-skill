@@ -1,33 +1,24 @@
-# Google Analytics Skill for Claude Code
+# Google Analytics 4 — MCP Server & AI Skill
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 [![Node.js 20+](https://img.shields.io/badge/Node.js-20%2B-green.svg)](https://nodejs.org/)
 [![MCP](https://img.shields.io/badge/MCP-compatible-purple.svg)](https://modelcontextprotocol.io/)
 
-A Claude Code skill for GA4 reporting. Ask Claude about your website traffic, audience, top pages, events, and more — powered by the Google Analytics Data API via MCP.
-
----
+Query your GA4 property from any MCP-compatible client — traffic reports, top pages, active users, events, and user behavior. Works with Claude Desktop, Claude Code, Cursor, Windsurf, Cline, and any tool supporting the [Model Context Protocol](https://modelcontextprotocol.io/).
 
 ## How It Works
 
-This skill connects Claude Code to your GA4 property through the `mcp-server-google-analytics` MCP server. Claude can then run reports, check page views, analyze user behavior, and track events using natural language.
+This project packages the [`mcp-server-google-analytics`](https://github.com/ruchernchong/mcp-server-google-analytics) MCP server with ready-to-use configuration and an optional Claude Code skill file for guided workflows.
 
-The skill file (`SKILL.md`) teaches Claude *how* to use the GA4 tools effectively — which tool to pick, what parameters to pass, and how to present the results.
-
----
+The MCP server connects to the GA4 Data API using a Google service account and exposes 5 tools that any MCP client can call.
 
 ## Prerequisites
 
-- [Claude Code](https://docs.anthropic.com/en/docs/claude-code) installed
-- Node.js 20+
+- **Node.js 20+**
 - A Google Cloud project with the **Analytics Data API** enabled
 - A service account with **Viewer** access to your GA4 property
 
----
-
-## Setup — MCP Server (Free & Open Source)
-
-The primary method uses [`mcp-server-google-analytics`](https://github.com/ruchernchong/mcp-server-google-analytics) by [ruchernchong](https://github.com/ruchernchong).
+## Setup
 
 ### Step 1: Create a Google Cloud Service Account
 
@@ -37,9 +28,12 @@ The primary method uses [`mcp-server-google-analytics`](https://github.com/ruche
 4. Create and download a JSON key for the service account
 5. In **Google Analytics** > Admin > Property Access Management, add the service account email as a **Viewer**
 
-### Step 2: Add MCP Server to Your Claude Code Project
+### Step 2: Add MCP Server to Your Client
 
-Create or edit `.mcp.json` in your project root:
+Create or edit your MCP configuration file:
+
+<details open>
+<summary><strong>Claude Desktop</strong> — <code>claude_desktop_config.json</code></summary>
 
 ```json
 {
@@ -57,31 +51,46 @@ Create or edit `.mcp.json` in your project root:
 }
 ```
 
-> **Tip:** Your `GA_PROPERTY_ID` is the numeric ID from GA4 Admin > Property Settings (e.g. `123456789`). Do not include the `properties/` prefix.
+Config location: `%APPDATA%\Claude\claude_desktop_config.json` (Windows) or `~/Library/Application Support/Claude/claude_desktop_config.json` (macOS)
 
-### Step 3: Install the Skill
+</details>
 
-Copy `SKILL.md` to your Claude Code skills directory:
+<details>
+<summary><strong>Claude Code</strong> — <code>.mcp.json</code> (project root)</summary>
 
-```bash
-mkdir -p ~/.claude/skills/google-analytics
-cp SKILL.md ~/.claude/skills/google-analytics/SKILL.md
+```json
+{
+  "mcpServers": {
+    "google-analytics": {
+      "command": "npx",
+      "args": ["-y", "mcp-server-google-analytics"],
+      "env": {
+        "GOOGLE_CLIENT_EMAIL": "your-service-account@project.iam.gserviceaccount.com",
+        "GOOGLE_PRIVATE_KEY": "-----BEGIN PRIVATE KEY-----\n...\n-----END PRIVATE KEY-----",
+        "GA_PROPERTY_ID": "123456789"
+      }
+    }
+  }
+}
 ```
 
-Restart Claude Code. You can now ask questions like "Show me my top pages this month" and Claude will query GA4 automatically.
+</details>
 
----
+<details>
+<summary><strong>Cursor / Windsurf / Cline</strong></summary>
 
-## Alternative Setup — Composio/Rube MCP (Freemium)
+Use the same JSON structure above in your editor's MCP configuration. Check your editor's docs for the config file location:
+- **Cursor:** `.cursor/mcp.json`
+- **Windsurf:** `~/.codeium/windsurf/mcp_config.json`
+- **Cline:** VS Code settings > Cline MCP Servers
 
-If you prefer a managed solution that handles OAuth and authentication for you, [Composio Rube MCP](https://rube.app/mcp) offers a Google Analytics integration with no service account setup required.
+</details>
 
-- **Free tier:** 1,000 requests/day
-- **Pro:** $25/month (higher limits, priority support)
+> **Tip:** Your `GA_PROPERTY_ID` is the numeric ID from GA4 Admin > Property Settings (e.g. `123456789`). Do not include the `properties/` prefix.
 
-See [Composio pricing](https://composio.dev/pricing) and [Rube MCP docs](https://rube.app/mcp) for details.
+### Step 3: Verify
 
----
+Restart your MCP client and ask: *"Show me my active users for the last 7 days"*
 
 ## Available Tools
 
@@ -93,11 +102,9 @@ See [Composio pricing](https://composio.dev/pricing) and [Rube MCP docs](https:/
 | `getEvents` | Event analysis | `startDate`, `endDate`, `eventName` |
 | `getUserBehavior` | Session duration, bounce rate, engagement | `startDate`, `endDate` |
 
----
-
 ## Usage Examples
 
-Just ask Claude in natural language:
+Ask your AI assistant in natural language:
 
 - "Show me my top 10 pages by views this month"
 - "How many active users did I have last week vs the week before?"
@@ -106,8 +113,6 @@ Just ask Claude in natural language:
 - "What's my bounce rate trend over the past 3 months?"
 - "Compare desktop vs mobile sessions this quarter"
 - "Which traffic sources are driving the most conversions?"
-
----
 
 ## Common Dimensions & Metrics Reference
 
@@ -142,24 +147,36 @@ Just ask Claude in natural language:
 | `averageSessionDuration` | Average session length in seconds |
 | `engagedSessions` | Sessions with engagement |
 
----
+## Use as a Claude Code Skill
+
+This repo includes a `SKILL.md` file that turns it into a [Claude Code](https://docs.anthropic.com/en/docs/claude-code/overview) skill with 5 guided workflows and an interactive setup assistant.
+
+```bash
+mkdir -p ~/.claude/skills/google-analytics
+cp SKILL.md ~/.claude/skills/google-analytics/SKILL.md
+```
+
+The skill will walk users through MCP server setup if it's not already configured.
+
+## Alternative MCP — Composio / Rube (Freemium)
+
+If you prefer a managed solution that handles OAuth without a service account:
+
+- [Composio Rube MCP](https://rube.app/mcp) — Free tier: 1,000 requests/day. Pro: $25/month.
+- See [Composio pricing](https://composio.dev/pricing) for details.
 
 ## Credits
 
 - **MCP Server:** [mcp-server-google-analytics](https://github.com/ruchernchong/mcp-server-google-analytics) by [ruchernchong](https://github.com/ruchernchong)
 - **Alternative MCP:** [Composio/Rube](https://composio.dev)
 
----
-
 ## Part of the Marketing Suite
 
-| Skill | Repository |
-|-------|------------|
+| Tool | Repository |
+|------|------------|
 | Google Trends | [judicael-s/google-trends-skill](https://github.com/judicael-s/google-trends-skill) |
 | **Google Analytics** | **This repo** |
 | Google Search Console | [judicael-s/google-search-console-skill](https://github.com/judicael-s/google-search-console-skill) |
-
----
 
 ## License
 
