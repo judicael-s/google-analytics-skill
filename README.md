@@ -177,6 +177,7 @@ If you prefer a managed solution that handles OAuth without a service account:
 | Google Trends | [judicael-s/google-trends-skill](https://github.com/judicael-s/google-trends-skill) |
 | **Google Analytics** | **This repo** |
 | Google Search Console | [judicael-s/google-search-console-skill](https://github.com/judicael-s/google-search-console-skill) |
+| Copywriting | [judicael-s/copywriting-skill](https://github.com/judicael-s/copywriting-skill) |
 
 ## License
 
