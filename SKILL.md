@@ -61,6 +61,22 @@ If the MCP server fails to connect, check:
 - The service account email has Viewer access in GA4
 - The property ID is numeric only (no `properties/` prefix)
 
+## MCP Tool Reference
+
+The actual deployed tool names on this workspace are namespaced. Map the bare names used in workflows below to the canonical calls:
+
+| Capability | Exact tool name |
+|---|---|
+| Page views (pagePath dimension) | `mcp__mcp-router__getPageViews` |
+| Active users (over date range) | `mcp__mcp-router__getActiveUsers` |
+| Events (by name or all) | `mcp__mcp-router__getEvents` |
+| Engagement / behavior metrics | `mcp__mcp-router__getUserBehavior` |
+| Custom multi-dimension reports | `mcp__mcp-router__runReport` |
+
+When the workflows below reference `runReport`, the actual call is `mcp__mcp-router__runReport`. Same for the others. Use the qualified names.
+
+---
+
 ## Workflow
 
 Follow these steps for every GA4 request.
@@ -148,6 +164,31 @@ Determine the date range from the user's request. Use these conventions:
 
 **Presentation:** Key metrics summary with context (e.g., "Bounce rate of 45% is within the typical range for content sites"). Compare to previous period if the user asks for trend context.
 
+#### Workflow 6: Conversion-Crater Detection
+
+**When to use:** auditing a published article/page for CTA effectiveness; cross-referenced from the `google-search-console` skill's 28-Day Audit Loop.
+
+**Tool:** `mcp__mcp-router__runReport`
+
+**Parameters:**
+- `startDate` / `endDate`: last 28 days
+- `dimensions`: `["pagePath"]`
+- `metrics`: `["sessions", "eventCount"]`
+- `dimensionFilter`: filter `pagePath` to the article URL
+- `metricFilter` (optional): filter `eventName == "purchase"` (or your site's primary conversion event)
+
+**Logic:** if `sessions ≥ 80` AND `purchase event count == 0` over 28 days, flag as **CTA audit required, not content audit.**
+
+**Common causes (in order of frequency):**
+1. CTA uses a legacy CSS class with no styles → invisible button on live page
+2. CTA points to wrong product for the article's audience (e.g., spoke article CTA → wrong bundle pack)
+3. CTAs all stacked at end-only — users who bounce mid-article never see them
+4. CTA copy is generic and doesn't match the article's promise (intent mismatch)
+
+**Output recommendation:** pull the article body HTML, parse all CTA blocks with surrounding H2 context + estimated scroll position, propose class fix + product target correction. Re-measure 28 days after the fix lands.
+
+---
+
 ### Step 3: Analyze & Present
 
 Use this output template:
@@ -190,6 +231,7 @@ After presenting results, the user may ask:
 - **Rate limits:** The GA4 Data API has quotas. If you hit a rate limit, wait a moment and retry. Avoid running many back-to-back queries unnecessarily
 - **Sampling:** Large date ranges or high-cardinality dimensions may return sampled data. Note this in your response if the API indicates sampling was applied
 - **Timezone:** GA4 data uses the property's configured timezone, not the user's local timezone
+- **k-anonymity floor:** demographic dimensions (age, gender, audience, country at low traffic) are suppressed when sample size falls below the privacy threshold. Don't pursue parent/age segmentation on properties with <1000 sessions per 28d — the data won't render.
 
 ## Limitations
 
